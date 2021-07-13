@@ -1,0 +1,30 @@
+--[[
+    Elperson 2021
+    WebSocket Connection test
+]]
+require("string")
+require("mongoose")
+print('Attempting to test WS\n...')
+local function evt_hnd(c: *mg_connection, ev: cint, ev_data: pointer, fn_data: pointer)
+    print('called')
+    switch ev
+    case MG_EV_CONNECT then
+        print('CONNECTED')
+    case MG_EV_WS_OPEN then
+        print('WS CONNECTION OPENED')
+        mg_ws_send(c, "bruh", 4, 1)
+    case MG_EV_CLOSE then
+        print("WS CONNECTION CLOSED")
+    case MG_EV_WS_MSG then
+        print('WS MESSAGE')
+        local mesg: *mg_ws_message = (@*mg_ws_message)(ev_data)
+        print("ECHO MESSAGE RECEIVED: ".. (@string)(mesg.data.ptr))
+    end
+end
+local mgr: mg_mgr
+local curl: cstring = "ws://echo.websocket.org"
+local done: boolean = false
+mg_mgr_init(&mgr)
+local connection = mg_ws_connect(&mgr,curl, evt_hnd, &done, nilptr)
+while done == false do mg_mgr_poll(&mgr, 1000) end
+mg_mgr_free(&mgr)
